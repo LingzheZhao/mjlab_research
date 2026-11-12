@@ -108,3 +108,27 @@ def test_matches_mujoco(load) -> None:
     expected = torch.from_numpy(np.concatenate([pose, vel[..., 3:], vel[..., :3]], -1))
     got = torch.cat([pos, quat, lin, ang], dim=-1)
     assert (got - expected[:, rows]).abs().max() < tol
+
+
+def test_input_gradients_match_finite_differences() -> None:
+  """Pose and twist derivatives cover root and joint positions and velocities."""
+  model = mujoco.MjModel.from_xml_string(_STRESS_XML)
+  joints = np.flatnonzero(model.jnt_type == mujoco.mjtJoint.mjJNT_HINGE)
+  q_adr = model.jnt_qposadr[joints]
+  rng = np.random.default_rng(1)
+  model.jnt_pos[joints] = rng.normal(size=(len(joints), 3)) * 0.05
+  model.qpos0[q_adr] = rng.uniform(-1.0, 1.0, len(joints))
+  rows = torch.tensor(
+    [
+      model.body(name).id - 1
+      for name in ("root", "leaf_weld", "branch2", "c6", "in_frame")
+    ]
+  )
+  fk = ForwardKinematics(
+    model, torch.arange(1, model.nbody), torch.tensor(q_adr), rows, torch.float64
+  )
+  state = tuple(
+    torch.tensor(rng.normal(size=(1, width)), dtype=torch.float64, requires_grad=True)
+    for width in (3, 4, len(joints), 3, 3, len(joints))
+  )
+  assert torch.autograd.gradcheck(fk, state)

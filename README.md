@@ -2,10 +2,16 @@
 
 # mjlab
 
+This fork keeps the tracking extensions from
+[HybridRobotics/mjlab_research](https://github.com/HybridRobotics/mjlab_research)
+while following `mujocolab/mjlab`. See [FORK.md](FORK.md) for fork installation,
+upstream synchronization, and consumer pinning. The PyPI examples below install
+upstream mjlab.
+
 [![GitHub Actions](https://img.shields.io/github/actions/workflow/status/mujocolab/mjlab/ci.yml?branch=main)](https://github.com/mujocolab/mjlab/actions/workflows/ci.yml?query=branch%3Amain)
 [![Documentation](https://github.com/mujocolab/mjlab/actions/workflows/docs.yml/badge.svg)](https://mujocolab.github.io/mjlab/)
 [![License](https://img.shields.io/github/license/mujocolab/mjlab)](https://github.com/mujocolab/mjlab/blob/main/LICENSE)
-[![MuJoCo Warp](https://img.shields.io/badge/MuJoCo_Warp-3.16.0-blue)](https://github.com/google-deepmind/mujoco_warp/releases/tag/v3.16.0)
+[![MuJoCo Warp](https://img.shields.io/badge/MuJoCo_Warp-4.0.1-blue)](https://github.com/google-deepmind/mujoco_warp/releases/tag/v4.0.1)
 [![Nightly Benchmarks](https://img.shields.io/badge/Nightly-Benchmarks-blue)](https://mujocolab.github.io/mjlab/nightly/)
 [![PyPI](https://img.shields.io/pypi/v/mjlab)](https://pypi.org/project/mjlab/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/mjlab?color=blue)](https://pypistats.org/packages/mjlab)

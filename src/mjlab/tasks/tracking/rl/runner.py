@@ -15,6 +15,13 @@ from mjlab.tasks.tracking.mdp import MotionCommand
 class _OnnxMotionModel(nn.Module):
   """ONNX-exportable model that wraps the policy and bundles motion reference data."""
 
+  joint_pos: torch.Tensor
+  joint_vel: torch.Tensor
+  body_pos_w: torch.Tensor
+  body_quat_w: torch.Tensor
+  body_lin_vel_w: torch.Tensor
+  body_ang_vel_w: torch.Tensor
+
   def __init__(self, actor, motion):
     super().__init__()
     self.policy = actor.as_onnx()
@@ -26,7 +33,7 @@ class _OnnxMotionModel(nn.Module):
     self.register_buffer("body_quat_w", body_quat_w.to("cpu"))
     self.register_buffer("body_lin_vel_w", body_lin_vel_w.to("cpu"))
     self.register_buffer("body_ang_vel_w", body_ang_vel_w.to("cpu"))
-    self.time_step_total: int = self.joint_pos.shape[0]  # type: ignore[index]
+    self.time_step_total: int = self.joint_pos.shape[0]
 
   def forward(self, x, time_step):
     time_step_clamped = torch.clamp(
@@ -34,12 +41,12 @@ class _OnnxMotionModel(nn.Module):
     )
     return (
       self.policy(x),
-      self.joint_pos[time_step_clamped],  # type: ignore[index]
-      self.joint_vel[time_step_clamped],  # type: ignore[index]
-      self.body_pos_w[time_step_clamped],  # type: ignore[index]
-      self.body_quat_w[time_step_clamped],  # type: ignore[index]
-      self.body_lin_vel_w[time_step_clamped],  # type: ignore[index]
-      self.body_ang_vel_w[time_step_clamped],  # type: ignore[index]
+      self.joint_pos[time_step_clamped],
+      self.joint_vel[time_step_clamped],
+      self.body_pos_w[time_step_clamped],
+      self.body_quat_w[time_step_clamped],
+      self.body_lin_vel_w[time_step_clamped],
+      self.body_ang_vel_w[time_step_clamped],
     )
 
 
@@ -105,5 +112,6 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
       isinstance(self.logger.writer, WandbLogWriter) and self.cfg["upload_model"]
     )
     if uploaded and self.registry_name is not None:
-      wandb.run.use_artifact(self.registry_name)  # type: ignore
+      assert wandb.run is not None
+      wandb.run.use_artifact(self.registry_name)
       self.registry_name = None
