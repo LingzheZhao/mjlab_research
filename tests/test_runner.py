@@ -268,8 +268,8 @@ def test_onnx_runtime_roundtrip_matches_pytorch():
       onnx_model,
       (x,),
       str(path),
-      input_names=onnx_model.input_names,  # pyright: ignore[reportArgumentType]
-      output_names=onnx_model.output_names,  # pyright: ignore[reportArgumentType]
+      input_names=onnx_model.input_names,
+      output_names=onnx_model.output_names,
       opset_version=18,
       dynamo=False,
     )
@@ -360,12 +360,12 @@ def test_cnn_onnx_export_to_file():
     onnx_path = Path(tmpdir) / "cnn_policy.onnx"
     torch.onnx.export(
       onnx_model,
-      onnx_model.get_dummy_inputs(),  # pyright: ignore[reportCallIssue]
+      onnx_model.get_dummy_inputs(),
       str(onnx_path),
       export_params=True,
       opset_version=18,
-      input_names=onnx_model.input_names,  # pyright: ignore[reportArgumentType]
-      output_names=onnx_model.output_names,  # pyright: ignore[reportArgumentType]
+      input_names=onnx_model.input_names,
+      output_names=onnx_model.output_names,
       dynamic_axes={},
       dynamo=False,
     )
@@ -393,8 +393,8 @@ def test_cnn_onnx_runtime_roundtrip_matches_pytorch():
       onnx_model,
       (x_1d, x_2d),
       str(path),
-      input_names=onnx_model.input_names,  # pyright: ignore[reportArgumentType]
-      output_names=onnx_model.output_names,  # pyright: ignore[reportArgumentType]
+      input_names=onnx_model.input_names,
+      output_names=onnx_model.output_names,
       opset_version=18,
       dynamo=False,
     )
@@ -478,24 +478,21 @@ def test_agent_cfg_serializable_after_runner_creation(env, device):
 
 
 class _MockMotion:
-  """Minimal mock of a motion object with tensor attributes."""
+  """Motion references expose body states through FK, without stored body arrays."""
 
   def __init__(self, num_steps, num_joints=12, num_bodies=5):
     self.time_step_total = num_steps
     self.joint_pos = torch.randn(num_steps, num_joints)
     self.joint_vel = torch.randn(num_steps, num_joints)
-    self.body_pos_w = torch.randn(num_steps, num_bodies, 3)
-    self.body_quat_w = torch.randn(num_steps, num_bodies, 4)
-    self.body_lin_vel_w = torch.randn(num_steps, num_bodies, 3)
-    self.body_ang_vel_w = torch.randn(num_steps, num_bodies, 3)
+    self._body_states = (
+      torch.randn(num_steps, num_bodies, 3),
+      torch.randn(num_steps, num_bodies, 4),
+      torch.randn(num_steps, num_bodies, 3),
+      torch.randn(num_steps, num_bodies, 3),
+    )
 
   def body_state(self, frames):
-    return (
-      self.body_pos_w[frames],
-      self.body_quat_w[frames],
-      self.body_lin_vel_w[frames],
-      self.body_ang_vel_w[frames],
-    )
+    return tuple(state[frames] for state in self._body_states)
 
 
 def test_onnx_motion_model_policy_matches_actor():
@@ -537,10 +534,11 @@ def test_onnx_motion_model_returns_correct_motion_frame():
 
   torch.testing.assert_close(joint_pos, motion.joint_pos[t : t + 1])
   torch.testing.assert_close(joint_vel, motion.joint_vel[t : t + 1])
-  torch.testing.assert_close(body_pos, motion.body_pos_w[t : t + 1])
-  torch.testing.assert_close(body_quat, motion.body_quat_w[t : t + 1])
-  torch.testing.assert_close(body_lin_vel, motion.body_lin_vel_w[t : t + 1])
-  torch.testing.assert_close(body_ang_vel, motion.body_ang_vel_w[t : t + 1])
+  expected_body_state = motion.body_state(torch.tensor([t]))
+  for actual, expected in zip(
+    (body_pos, body_quat, body_lin_vel, body_ang_vel), expected_body_state, strict=True
+  ):
+    torch.testing.assert_close(actual, expected)
 
 
 def test_onnx_motion_model_clamps_out_of_bounds_time_step():

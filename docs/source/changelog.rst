@@ -8,6 +8,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
+  local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
 - ``GridPatternCfg.resolution`` accepts a per-axis ``(x, y)`` tuple.
 - Added a ``cu126`` extra (``uv sync --extra cu126``) that installs torch built for
@@ -27,6 +29,23 @@ Added
 Changed
 ^^^^^^^
 
+- The research fork follows upstream MuJoCo 4.0.1 while retaining multi-clip
+  tracking, differentiable FK, external reset sampling, and ghost visualizations.
+  Tracking ONNX exports continue to materialize references through ``body_state``.
+- Upgraded MuJoCo and MuJoCo Warp to 4.0.1. mjlab now depends on ``mujoco-core``
+  instead of ``mujoco``. To upgrade an existing environment, run
+  ``uv sync --reinstall-package mujoco-core``: removing ``mujoco`` deletes files that
+  ``mujoco-core`` shares with it.
+- ``requires_model_fields`` no longer takes ``recompute``: the event manager infers
+  which derived constants to recompute from the listed fields, using MuJoCo Warp's
+  ``set_const`` groups. ``RecomputeLevel`` is removed, and
+  ``sim.recompute_constants()`` takes ``mujoco_warp.SetConstGroup`` flags.
+- ``dr.geom_size`` now recomputes broadphase bounds with ``set_const`` after the event
+  fires. Calling it directly no longer updates ``geom_rbound`` and ``geom_aabb``.
+- Regex keys in ``init_state.joint_pos``/``joint_vel``, ``posture_target`` and spec
+  config ``*_names_expr`` fields now match whole names, so ``"joint1"`` no longer
+  matches ``joint10``. Keys in ``joint_pos``, ``joint_vel`` or ``posture_target`` that
+  match no joint now raise. Contribution by @saikishor.
 - Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
   expects. Non-square sub-terrains are no longer stretched with flat patches off the
   terrain; square ones are mirrored across x=y for a given seed.
@@ -49,6 +68,27 @@ Changed
 Fixed
 ^^^^^
 
+- Domain randomization of body poses, centers of mass, masses and ``qpos0`` now keeps
+  equality constraint anchors (``eq_data``) and tracking camera and light references
+  per world. Previously every world used world 0's values.
+- Randomizing ``geom_size``, ``geom_pos``, ``geom_quat`` or ``site_pos`` in models
+  with spatial tendons now recomputes tendon rest lengths and inverse weights, and
+  randomizing ``site_pos`` or ``site_quat`` with site transmission actuators now
+  recomputes ``actuator_acc0``.
+- ``dr.cam_pos``, ``dr.cam_quat``, ``dr.light_pos`` and ``dr.light_dir`` now update
+  tracking cameras and lights, and viewers show them at each world's pose.
+- DR terms that list ``jnt_pos`` or ``jnt_axis`` in ``requires_model_fields`` now
+  recompute the derived inertia constants.
+- ``BuiltinPdActuator`` now sends position and velocity targets to the right
+  elements when ``EntityCfg.sort_actuators=True``. Contribution by @saikishor.
+- Observations no longer read sensor data cached before the ``forward()`` at the
+  end of ``step()``, which made contact observations depend on whether another
+  environment reset that step. The simulation now invalidates sensor caches
+  whenever its data changes. Reported by @Chr0mium24 in :issue:`1309`.
+- ``export-scene`` no longer deletes a non-empty ``--output-dir``. Pass
+  ``--overwrite True`` to replace a previous export. Contribution by @saikishor.
+- ``upright`` now uses the root body when ``asset_cfg`` selects no bodies, instead
+  of raising a shape error on multi-body entities. Contribution by @yunyv.
 - Delayed position actuators now hold the post-reset joint positions until the
   first action arrives, instead of driving toward 0 for their first ``lag``
   physics steps after every reset. Targets set during the reset are kept.
